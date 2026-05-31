@@ -1,0 +1,114 @@
+#include <fstream>
+#include <iostream>
+#include "Marsh.h"
+#include <string.h>
+#include <stdlib.h>
+#include "sort.h"
+using namespace std;
+
+int hashTable[m][2];
+
+void initHashTable() {
+    for (int i = 0; i < m; i++) {
+        hashTable[i][0] = -1; //key
+        hashTable[i][1] = -1; //index
+    }
+}
+
+int hashFunc(int key, int i) {
+    return (key + i * i) % m;
+}
+
+void create_hashTable(Marsh* arr, int n) {
+    initHashTable();
+    for (int i = 0; i < n; i++) {
+        int key = arr[i].number;
+        int j, ii = 0;
+        while (1) {
+            j = hashFunc(key, ii);
+            if (hashTable[j][1] == -1) break;
+            ii++;
+        }
+        hashTable[j][0] = key;
+        hashTable[j][1] = i;
+    }
+}
+
+int searchHash(int key) {
+    int ii = 0, j;
+    while (ii < m) {
+        j = hashFunc(key, ii);
+        if (hashTable[j][1] == -1) return -1; //not found
+        if (hashTable[j][0] == key) return hashTable[j][1]; //found
+        ii++;
+    }
+    return -1;
+}
+
+int main() {
+    Marsh gr[8];
+    int n = 0;
+
+    ifstream file("text.txt");
+    if (!file.is_open()) {
+        cout << "error" << endl;
+        return 1;
+    }
+
+    while (n < 8 && file >> gr[n]) {
+        n++;
+    }
+    file.close();
+
+    cout << "----------before----------" << endl;
+    for (int i = 0; i < 8; i++) {
+        cout << gr[i] << endl;
+    }
+
+    create_hashTable(gr, 8);
+
+    cout << "\nhash tab" << endl;
+    for (int i = 0; i < m; i++) {
+        cout << i << " key - " << hashTable[i][0] << " index - " << hashTable[i][1];
+        if (hashTable[i][1] != -1) {
+            cout << " -> " << gr[hashTable[i][1]];
+        }
+        cout << endl;
+    }
+
+    insert(gr, 4, Marsh::compNumber);
+
+    cout << "----------after----------" << endl;
+    for (int i = 0; i < 8; i++) {
+        cout << gr[i] << endl;
+    }
+
+    // Запись в двоичный файл
+    ofstream out("marsh.bin", ios::binary);
+    out.write((char*)gr, n * sizeof(Marsh));
+    out.close();
+
+    // === ХЕШ-ПОИСК (не читает весь файл) ===
+    int searchKey;
+    cout << "\nenter number for hash search: ";
+    cin >> searchKey;
+
+    int recordNum = searchHash(searchKey);
+    if (recordNum != -1) {
+        cout << "found in hash table, record #" << recordNum << endl;
+
+        ifstream fin("marsh.bin", ios::binary);
+        fin.seekg(recordNum * sizeof(Marsh), ios::beg);
+
+        Marsh found;
+        fin.read((char*)&found, sizeof(Marsh));
+        fin.close();
+
+        cout << "data from binary file: " << found << endl;
+    }
+    else {
+        cout << "not found in hash table" << endl;
+    }
+
+    return 0;
+}
